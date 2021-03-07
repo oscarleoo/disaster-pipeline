@@ -12,10 +12,20 @@ from sklearn.pipeline import Pipeline
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import classification_report
 
 def load_data(database_filepath):
+    """
+    Loads the sql data
+    --
+    Inputs:
+        database_filepath: The path to the data
+    Outputs:
+        X: the messages that we want to train on
+        Y: The categories
+        columns: The categoriy names
+    """
     engine = create_engine('sqlite:///' + database_filepath)
     df = pd.read_sql_table('disaster_data', con=engine) 
     X, Y = df.message, df.drop(['id', 'message', 'original', 'genre'], axis=1)
@@ -23,24 +33,60 @@ def load_data(database_filepath):
 
 
 def tokenize(text):
-    return word_tokenize(text)
+    """
+    Tokenizes text in preparation for training
+    --
+    Inputs:
+        text: The text to tokenize
+    Outputs:
+        texts: The tokenized text
+    """
+    return word_tokenize(text.lower())
 
 
 def build_model():
-    return Pipeline([
+    """
+    Function for building the model using pipeline and gridsearch
+    --
+    Outputs:
+        model: A GridSearchCV containing the model and parameters we want to search for 
+    """
+    pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
         ('clf', MultiOutputClassifier(RandomForestClassifier()))
     ])
+    
+    return GridSearchCV(pipeline, param_grid={
+        'vect__max_df': (0.5, 0.75, 1.0),
+        'vect__max_features': (None, 5000, 10000),
+        'tfidf__use_idf': (True, False),
+    })
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    """
+    Evaluating the model using classification report and prints the results
+    --
+    Inputs:
+        model: The model to evaluate
+        X_test: The input data to make prediction on
+        Y_test: The correct answers
+        category_names: A list with the names of the categories
+    """
     P_test = model.predict(X_test)
     for i, c in enumerate(category_names):
         print(classification_report(Y_test[c], P_test[:, i]))
 
 
 def save_model(model, model_filepath):
+    """
+    Function for saving the model
+    --
+    Inputs:
+        model: The model we want to save
+        model_filepath: The place to save the model
+    """
     with open(model_filepath, 'wb') as file:
         pickle.dump(model, file)
 
