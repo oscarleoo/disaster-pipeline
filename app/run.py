@@ -75,12 +75,12 @@ def index():
             ],
 
             'layout': {
-                'title': 'Distribution of Message Genres',
+                'title': 'Category counts - alphabetical order',
                 'yaxis': {
                     'title': "Count"
                 },
                 'xaxis': {
-                    'title': "Genre"
+                    'title': "Categories"
                 }
             }
         }
